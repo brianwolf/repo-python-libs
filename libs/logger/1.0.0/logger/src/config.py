@@ -1,0 +1,4 @@
+LOGGERS = {}
+
+PATH = 'logs'
+DEFAULT_LEVEL = 'INFO'

@@ -49,12 +49,12 @@ def get_var(var: Enum) -> str:
     return os.environ.get(var.value, valor_de_diccionario)
 
 
-def all_vars(show_hiden=False) -> Dict[str, str]:
+def all_vars() -> Dict[str, str]:
     """
     Devuelve el mapa de variables con sus valores instanciados y filtrados por la lista de no mostrados
     """
     return {
         key.value: get_var(key)
         for key in config.ENUMS_LIST
-        if show_hiden or key.value not in config.HIDEN_VARS
+        if key.value not in config.HIDEN_VARS
     }

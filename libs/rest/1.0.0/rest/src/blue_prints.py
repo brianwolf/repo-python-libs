@@ -2,64 +2,46 @@
 Herramienta que carga de formma dinamica los blueprints de flask recursivamente
 que se encuentren en un directorio
 """
-from importlib.util import module_from_spec, spec_from_file_location
-from os import listdir, path
+import glob
+import os
+from typing import List
 
-from flask import Flask
 
-
-def _nombre_archivo(ruta: str):
+def file_name(path: str) -> str:
     """
     Devuelve el nombre del archivo al final de la ruta sin la extension
     """
-    return path.basename(ruta).split(".")[0]
+    return os.path.basename(path).split('.')[0]
 
 
-def _cargar_rutas_de_archivos(ruta_base: str):
+def get_blueprints_routes(base_path: str) -> List[str]:
     """
     Obtiene las rutas de todos los archivos .py dentro del directorio parametro, 
     es recursivo por lo que si hay carpetas dentro tambien busca ahi
     """
-    sub_rutas = listdir(ruta_base)
-    if '__pycache__' in sub_rutas:
-        sub_rutas.remove('__pycache__')
+    blueprints_routes = []
 
-    rutas_archivos = []
-    directorios = []
-    for i in sub_rutas:
-        ruta_completa = path.join(ruta_base, i)
+    for root, _, files in os.walk(base_path):
 
-        if path.isfile(ruta_completa):
-            rutas_archivos.append(ruta_completa)
+        if '__pycache__' in root or not files:
+            continue
 
-        if path.isdir(ruta_completa):
-            directorios.append(ruta_completa)
+        blueprints_routes.extend([
+            os.path.join(root, file)
+            for file in files
+        ])
 
-    for d in directorios:
-        rutas_archivos.extend(_cargar_rutas_de_archivos(d))
-
-    return rutas_archivos
+    return blueprints_routes
 
 
-def carga_dinamica_de_bps(app: Flask, directorio_rutas: str):
+def get_blueprints_routes_by_regex(regex_path: str) -> List[str]:
     """
-    Registra los archivos dentro de `directorio_rutas` recursivamente como Blueprints para Flask,
-    pera esto es necesario que se defina un atributo llamado `blue_print` en cada archivo python. \n
-    Ejemplo:
-
-    ```
-    from flask import Blueprint
-    blue_print = Blueprint('nombre_unico_de_ruta', __name__, url_prefix='/api/v1/ejemplos')
-    ```
+    Obtiene las rutas de todos los archivos python dentro del directorio parametro regex, 
+    es recursivo por lo que si hay carpetas dentro tambien busca ahi
     """
-    rutas = _cargar_rutas_de_archivos(directorio_rutas)
+    blueprints_routes = []
 
-    for ruta_archivo in rutas:
-        nombre_modulo = _nombre_archivo(ruta_archivo)
+    for base_path in glob.glob(regex_path):
+        blueprints_routes.extend(get_blueprints_routes(base_path))
 
-        spec = spec_from_file_location(nombre_modulo, ruta_archivo)
-        modulo = module_from_spec(spec)
-        spec.loader.exec_module(modulo)
-
-        if hasattr(modulo, 'blue_print'):
-            app.register_blueprint(modulo.blue_print)
+    return blueprints_routes
